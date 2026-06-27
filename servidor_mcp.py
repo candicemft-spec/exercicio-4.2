@@ -1,8 +1,15 @@
-﻿import httpx
+﻿import logging
+logging.disable(logging.CRITICAL)
+
+import httpx
 from mcp.server.fastmcp import FastMCP
 
+for _n in ("mcp", "httpx", "httpcore", "uvicorn", "asyncio"):
+    logging.getLogger(_n).setLevel(logging.CRITICAL)
+    logging.getLogger(_n).disabled = True
+
 API = "http://localhost:8000"
-mcp = FastMCP("tarefas-mcp")
+mcp = FastMCP("tarefas-mcp", log_level="CRITICAL")
 
 
 @mcp.tool()

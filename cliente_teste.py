@@ -1,4 +1,7 @@
-﻿import asyncio
+﻿import logging
+logging.disable(logging.CRITICAL)
+
+import asyncio
 import json
 import os
 import sys
@@ -6,8 +9,10 @@ import sys
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-# Caminho absoluto do servidor, ancorado na pasta deste arquivo —
-# funciona independente do diretorio de onde o cliente for executado.
+for _n in ("mcp", "httpx", "httpcore", "asyncio"):
+    logging.getLogger(_n).setLevel(logging.CRITICAL)
+    logging.getLogger(_n).disabled = True
+
 _AQUI = os.path.dirname(os.path.abspath(__file__))
 _SERVIDOR = os.path.join(_AQUI, "servidor_mcp.py")
 
@@ -27,25 +32,19 @@ def _parse(result):
     return [json.loads(t) for t in textos]
 
 
-async def main() -> dict:
-    # usa o mesmo interpretador python que esta rodando este cliente,
-    # e o caminho absoluto do servidor
+async def _run() -> dict:
     params = StdioServerParameters(command=sys.executable, args=[_SERVIDOR])
     async with stdio_client(params) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
-
             tools = await session.list_tools()
             nomes = [t.name for t in tools.tools]
-
             criar = await session.call_tool("criar_tarefa", {"titulo": "tarefa via mcp"})
             listar = await session.call_tool("listar_tarefas", {})
-
             criar_resultado = _parse(criar)
             listar_resultado = _parse(listar)
             if isinstance(listar_resultado, dict):
                 listar_resultado = [listar_resultado]
-
             return {
                 "tools": nomes,
                 "criar_resultado": criar_resultado,
@@ -54,4 +53,6 @@ async def main() -> dict:
 
 
 if __name__ == "__main__":
-    print(json.dumps(asyncio.run(main())))
+    resultado = asyncio.run(_run())
+    sys.stdout.write(json.dumps(resultado))
+    sys.stdout.flush()
